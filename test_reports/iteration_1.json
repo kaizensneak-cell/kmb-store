@@ -1,0 +1,34 @@
+{
+  "summary": "First-finish smoke testing of KMB STORE (backend + frontend + admin). Backend: all 3 GET endpoints (products=24 across 6 brands, config with 14 communes, reviews=6) return 200. Single product GET works. Admin login: wrong password -> 401, admin123 -> 200. All admin-protected endpoints (POST/PUT/DELETE /api/products, PUT /api/config/communes, POST /api/upload) reject requests without X-Admin-Password (401) and accept with correct header. Full product CRUD lifecycle verified (create->update->delete). Image upload to object storage returns url; GET /api/files/{path} returns image/png bytes (69B). Frontend: Home loads with hero/search/32 cards; search filter works (Jordan filter -> 6 cards); product card click navigates to /produit/:id. On product page: before selection incomplete-error is visible and WhatsApp/Wave buttons are disabled; after selecting size 37 + commune Abobo, summary-total updated to '44 000 FCFA' (42000+2000) and both order buttons became enabled. Add-to-cart clicked and cart drawer auto-opened. Admin page: password login with admin123 shows dashboard (product list rendered) and add-product modal opens with all fields.",
+  "tested_scope": ["frontend", "backend", "auth", "integration"],
+  "passed": [
+    "GET /api/products (24 products, 6 brands)",
+    "GET /api/products/{id}",
+    "GET /api/config (14 communes)",
+    "GET /api/reviews (6 reviews)",
+    "POST /api/admin/login wrong password -> 401",
+    "POST /api/admin/login admin123 -> 200 {success:true}",
+    "Admin endpoints reject without header (401)",
+    "POST /api/products with header creates product",
+    "PUT /api/products/{id} with header updates product",
+    "DELETE /api/products/{id} with header deletes product",
+    "PUT /api/config/communes updates fees (accepts JSON array body)",
+    "POST /api/upload returns url; GET /api/files/{path} returns image bytes",
+    "Frontend home loads with hero + search + product grid",
+    "Real-time search filters products",
+    "Product card navigation to /produit/:id",
+    "incomplete-error shown & order buttons disabled before selection",
+    "Selecting size + commune enables order buttons and updates summary-total (44 000 FCFA)",
+    "Add-to-cart works; cart drawer opens with item",
+    "Admin login (admin123) shows dashboard and add-product modal opens"
+  ],
+  "failed": [],
+  "notes": [
+    "PUT /api/config/communes expects a raw JSON array body (List[Commune]), not an object wrapper. Frontend already sends the correct shape via api.js.",
+    "Test overwrote communes list during backend testing but was restored to seeded 14 communes afterwards."
+  ],
+  "action_items": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}
