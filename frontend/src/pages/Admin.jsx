@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Plus, Trash2, Pencil, Upload, X, ArrowLeft, Save, MessageCircle, Package, Bell } from "lucide-react";
+import { Lock, Plus, Trash2, Pencil, Upload, X, ArrowLeft, Save, MessageCircle, Package, Bell, Download } from "lucide-react";
 import { api, API, imgUrl, fmtFCFA } from "@/lib/api";
 import { BRANDS } from "@/config";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ export default function Admin() {
   const [orders, setOrders] = useState([]);
   const [orderFilter, setOrderFilter] = useState("Tous");
   const [restock, setRestock] = useState([]);
+  const [notifyModal, setNotifyModal] = useState(null);
   const [editing, setEditing] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -51,12 +52,21 @@ export default function Admin() {
 
   const saveProduct = async () => {
     const payload = { ...editing, price: Number(editing.price), old_price: editing.old_price ? Number(editing.old_price) : null, stock: Number(editing.stock) };
+    const productId = editing.id;
     try {
       if (editing.id) await api.put(`/products/${editing.id}`, payload, { headers });
       else await api.post("/products", payload, { headers });
       toast.success("Produit enregistré");
       setEditing(null);
       refresh();
+      // Restock auto-notif : si le produit est en stock, proposer de prévenir les clients en attente
+      if (productId && payload.stock > 0) {
+        try {
+          const r = await api.get("/admin/restock", { headers });
+          const waiting = r.data.filter((x) => x.product_id === productId && payload.sizes.includes(x.size));
+          if (waiting.length) setNotifyModal(waiting);
+        } catch {}
+      }
     } catch {
       toast.error("Erreur d'enregistrement");
     }
@@ -120,6 +130,31 @@ export default function Admin() {
     const num = (r.whatsapp || "").replace(/[^0-9]/g, "");
     const msg = `Bonjour ! Bonne nouvelle 🎉 Votre pointure ${r.size} pour "${r.product_name}" est de nouveau disponible chez KMB STORE. Commandez vite avant rupture !`;
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const handleModalRemove = async (id) => {
+    await deleteRestock(id);
+    setNotifyModal((m) => (m ? m.filter((x) => x.id !== id) : m));
+  };
+
+  const exportOrders = () => {
+    const today = new Date().toDateString();
+    const day = orders.filter((o) => new Date(o.created_at).toDateString() === today);
+    if (!day.length) { toast.error("Aucune commande aujourd'hui."); return; }
+    const rows = [["Date", "Client", "Email", "Articles", "Commune", "Repere", "Livraison", "Total", "Statut", "Methode"]];
+    day.forEach((o) => {
+      const arts = o.items.map((it) => `${it.name} P${it.size} x${it.qty}`).join(" | ");
+      rows.push([new Date(o.created_at).toLocaleString("fr-FR"), o.customer_name || "", o.customer_email || "", arts, o.commune || "", o.landmark || "", o.delivery_fee, o.total, o.status, o.method]);
+    });
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `commandes_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${day.length} commande(s) exportée(s)`);
   };
 
   if (!authed) {
@@ -221,6 +256,7 @@ export default function Admin() {
         )}
         {tab === "orders" && (
           <div className="space-y-3 max-w-2xl" data-testid="admin-orders-list">
+            <button onClick={exportOrders} className="h-9 px-4 rounded-full bg-[#111111] text-white text-xs mono-label flex items-center gap-1.5" data-testid="export-orders"><Download className="w-3.5 h-3.5" /> Exporter le jour (CSV)</button>
             <div className="flex gap-2 flex-wrap mb-1">
               {["Tous", "En attente", "Livré", "Annulé"].map((f) => (
                 <button key={f} onClick={() => setOrderFilter(f)} className={`h-8 px-3 rounded-full mono-label text-[10px] ${orderFilter === f ? "bg-[#111111] text-white" : "bg-white border border-neutral-200 text-neutral-600"}`} data-testid={`order-filter-${f}`}>{f}</button>
@@ -255,6 +291,33 @@ export default function Admin() {
           </div>
         )}
       </div>
+
+      {/* NOTIFY RESTOCK MODAL */}
+      {notifyModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" data-testid="notify-modal">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display font-extrabold text-lg">Clients en attente</h3>
+              <button onClick={() => setNotifyModal(null)} data-testid="notify-modal-close"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-sm text-neutral-500 mb-4">{notifyModal.length} client(s) attendent cette paire de nouveau en stock. Prévenez-les sur WhatsApp.</p>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {notifyModal.map((r) => (
+                <div key={r.id} className="flex items-center justify-between gap-2 border border-neutral-200 rounded-lg p-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-neutral-900">P{r.size} · {r.whatsapp}</p>
+                    <p className="mono-label text-[9px] text-neutral-400 truncate">{r.product_name}</p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button onClick={() => notifyRestock(r)} className="h-8 px-3 rounded-full bg-[#111111] text-white text-xs mono-label flex items-center gap-1" data-testid={`notify-modal-send-${r.id}`}><MessageCircle className="w-3.5 h-3.5" /> Notifier</button>
+                    <button onClick={() => handleModalRemove(r.id)} className="h-8 px-3 rounded-full border border-neutral-200 text-[#DC2626] text-xs mono-label" data-testid={`notify-modal-done-${r.id}`}>Fait</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* EDIT MODAL */}
       {editing && (

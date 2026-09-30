@@ -19,6 +19,7 @@ export default function Home() {
   const [brandFilter, setBrandFilter] = useState(null);
   const [maxPrice, setMaxPrice] = useState("");
   const [sizeFilter, setSizeFilter] = useState(null);
+  const [sort, setSort] = useState("");
 
   useEffect(() => {
     api.get("/products").then((r) => setProducts(r.data)).catch(() => {});
@@ -36,10 +37,18 @@ export default function Home() {
     });
   }, [products, search, brandFilter, maxPrice, sizeFilter]);
 
-  const featured = filtered.filter((p) => p.featured).slice(0, 8);
-  const byBrand = BRANDS.map((b) => ({ brand: b, items: filtered.filter((p) => p.brand === b) })).filter((g) => g.items.length);
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    if (sort === "price-asc") arr.sort((a, b) => a.price - b.price);
+    else if (sort === "price-desc") arr.sort((a, b) => b.price - a.price);
+    else if (sort === "nouveaute") arr.sort((a, b) => (b.badge === "Nouveau" ? 1 : 0) - (a.badge === "Nouveau" ? 1 : 0) || (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+    return arr;
+  }, [filtered, sort]);
 
-  const isFiltering = search || brandFilter || maxPrice || sizeFilter;
+  const featured = sorted.filter((p) => p.featured).slice(0, 8);
+  const byBrand = BRANDS.map((b) => ({ brand: b, items: sorted.filter((p) => p.brand === b) })).filter((g) => g.items.length);
+
+  const isFiltering = search || brandFilter || maxPrice || sizeFilter || sort;
   const SIZES = [37, 38, 39, 40, 41, 42, 43, 44, 45];
 
   return (
@@ -102,8 +111,14 @@ export default function Home() {
             <option value="80000">≤ 80 000</option>
             <option value="120000">≤ 120 000</option>
           </select>
+          <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-9 px-3 rounded-full bg-white border border-neutral-200 text-xs mono-label" data-testid="filter-sort">
+            <option value="">Trier</option>
+            <option value="price-asc">Prix croissant</option>
+            <option value="price-desc">Prix décroissant</option>
+            <option value="nouveaute">Nouveautés</option>
+          </select>
           {isFiltering && (
-            <button onClick={() => { setSearch(""); setBrandFilter(null); setMaxPrice(""); setSizeFilter(null); }} className="h-9 px-4 rounded-full bg-[#111111] text-white text-xs mono-label" data-testid="filter-clear">Réinitialiser</button>
+            <button onClick={() => { setSearch(""); setBrandFilter(null); setMaxPrice(""); setSizeFilter(null); setSort(""); }} className="h-9 px-4 rounded-full bg-[#111111] text-white text-xs mono-label" data-testid="filter-clear">Réinitialiser</button>
           )}
         </div>
       </section>
