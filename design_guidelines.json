@@ -1,0 +1,93 @@
+{
+  "project_name": "KMB STORE",
+  "tagline": "LE MEILLEUR DU STYLE",
+  "location": "Abidjan, Côte d'Ivoire",
+  "locale": {
+    "language": "fr",
+    "currency": "FCFA",
+    "currency_format": "X XXX FCFA (e.g. 65 000 FCFA)"
+  },
+  "design_archetype": {
+    "style": "Abidjan Streetwear Minimal Luxury",
+    "vibe": "Clean, high-energy sneakerhead store tailored for Abidjan youth and sneaker collectors",
+    "border_radius": "rounded-xl (12px) for cards, rounded-full for buttons and badges",
+    "borders": "border border-neutral-200/90 (thin gray crisp borders)"
+  },
+  "colors": {
+    "page_background": "#F6F2EC",
+    "page_background_class": "bg-[#F6F2EC]",
+    "card_background": "#FFFFFF",
+    "card_background_class": "bg-white",
+    "primary_black": "#111111",
+    "primary_black_hover": "#262626",
+    "vivid_red_accent": "#DC2626",
+    "vivid_red_hover": "#B91C1C",
+    "vivid_red_light": "#FEF2F2",
+    "text_primary": "#171717",
+    "text_secondary": "#525252",
+    "text_muted": "#737373",
+    "border_gray": "#E5E5E5",
+    "surface_tinted": "#EFEAE2"
+  },
+  "typography": {
+    "title_font": "Outfit, Syne, sans-serif",
+    "title_classes": "font-sans font-bold tracking-tight text-neutral-900",
+    "body_font": "Plus Jakarta Sans, sans-serif",
+    "body_classes": "font-sans text-neutral-800 antialiased",
+    "label_mono_font": "Space Mono, JetBrains Mono, monospace",
+    "label_mono_classes": "font-mono text-xs uppercase tracking-widest text-neutral-600 font-semibold"
+  },
+  "layout_and_spacing": {
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "grid_product_mobile": "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4",
+    "grid_featured": "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6",
+    "card_padding": "p-3 sm:p-4"
+  },
+  "components_design": {
+    "info_strip": "Top banner with high contrast black bg `#111111`, white text, displaying delivery to Abidjan communes (Cocody, Yopougon, Marcory, Plateau, Riviera) + Wave & WhatsApp order options.",
+    "global_header": "Glassmorphic light header bg-[#F6F2EC]/90 backdrop-blur-md sticky top-0 z-40 border-b border-neutral-200. Displays brand logo 'KMB STORE', search bar with instant filter, wishlist toggle, cart drawer trigger button with red item count badge, and admin access button.",
+    "hero_section": "High-impact streetwear banner with bold headline 'SNEAKERS AUTHENTIQUES À ABIDJAN', tagline 'LE MEILLEUR DU STYLE', action buttons 'VOIR LA COLLECTION' and 'NOS BEST-SELLERS', plus trust metrics (100% Original, Livraison Express en 24h, Paiement Wave/Espèces).",
+    "product_card": "Pure white background (`#FFFFFF`), 1px neutral border (`border-neutral-200`), rounded-xl overflow-hidden. Image with hover zoom effect and 'NOUVEAU' or 'BEST-SELLER' red badge. Price in vivid red bold monospace font (`text-red-600 font-mono font-bold text-base sm:text-lg`). Quick-add to cart button in solid black (`bg-neutral-900 hover:bg-neutral-800 text-white`). Size availability indicator in monospace.",
+    "product_detail": "Complete view/modal with image switcher gallery, size selection grid (38, 39, 40, 41, 42, 43, 44, 45, 46) with stock badges ('Plus que 2 dispo!'), commune delivery fee selector dropdown (Cocody 1 500 FCFA, Marcory 1 500 FCFA, Yopougon 2 000 FCFA, Plateau 1 500 FCFA, Abobo 2 000 FCFA, Autre Ville 3 500 FCFA), direct ordering via WhatsApp CTA with auto-generated order message, and Wave payment CTA.",
+    "brand_carousel": "Interactive brand bar showcasing Nike, Air Jordan, Yeezy, New Balance, Adidas, Puma, Asics with quick filter on click.",
+    "customer_reviews": "Testimonials cards with customer photos, star ratings, Abidjan commune tags (e.g. 'Koffi A. - Cocody Angré', 'Sia M. - Marcory Zone 4'), verified purchase badge.",
+    "cart_drawer": "Slide-over right drawer (Shadcn Sheet) showing cart items, quantity modifiers, total calculation in FCFA, commune delivery selection, and dual action CTAs: 'Commander via WhatsApp' (green accent icon/button) and 'Payer par Wave' (blue/black button).",
+    "mini_admin_area": "Protected or accessible modal/tab dashboard to add new sneakers (title, brand, price in FCFA, original price, sizes array, tag, image URL), view order list with status ('En attente', 'Livré', 'Annulé') and direct customer WhatsApp trigger."
+  },
+  "image_urls": {
+    "hero_banner": "https://images.unsplash.com/photo-1597639564813-769a5118f864?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHw0fHxwcmVtaXVtJTIwc25lYWtlcnMlMjBzaG9lcyUyME5pa2UlMjBKb3JkYW4lMjBZZWV6eSUyMHN0cmVldHdlYXJ8ZW58MHx8fHwxNzkwODAxNTAxfDA&ixlib=rb-4.1.0&q=85",
+    "hero_secondary": "https://images.unsplash.com/photo-1615290642882-6b9501729a27?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHxfHxzbmVha2VycyUyMGJveCUyMHVuYm94aW5nJTIwdXJiYW4lMjBzdHJlZXR3ZWFyJTIwYWVzdGhldGljfGVufDB8fHx8MTc5MDgwMTUwMXww&ixlib=rb-4.1.0&q=85",
+    "nike_dunk_low": "https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwyfHxzbmVha2VyJTIwc3RvcmUlMjBwcm9kdWN0JTIwZm9vdHdlYXIlMjBpc29sYXRlZHxlbnwwfHx8fDE3OTA4MDE1MzJ8MA&ixlib=rb-4.1.0&q=85",
+    "air_jordan_1_chicago": "https://images.unsplash.com/photo-1597639564819-8fa17aa752db?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwyfHxwcmVtaXVtJTIwc25lYWtlcnMlMjBzaG9lcyUyME5pa2UlMjBKb3JkYW4lMjBZZWV6eSUyMHN0cmVldHdlYXJ8ZW58MHx8fHwxNzkwODAxNTAxfDA&ixlib=rb-4.1.0&q=85",
+    "yeezy_boost_350": "https://images.unsplash.com/photo-1587855049254-351f4e55fe2a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTJ8MHwxfHNlYXJjaHwxfHxwcmVtaXVtJTIwc25lYWtlcnMlMjBzaG9lcyUyME5pa2UlMjBKb3JkYW4lMjBZZWV6eSUyMHN0cmVldHdlYXJ8ZW58MHx8fHwxNzkwODAxNTAxfDA&ixlib=rb-4.1.0&q=85",
+    "nike_air_max_95": "https://images.unsplash.com/photo-1550399865-ec7d23b18e8e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHw0fHxzbmVha2VyJTIwc3RvcmUlMjBwcm9kdWN0JTIwZm9vdHdlYXIlMjBpc29sYXRlZHxlbnwwfHx8fDE3OTA4MDE1MzJ8MA&ixlib=rb-4.1.0&q=85",
+    "nike_floating_orange": "https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHxfHxzbmVha2VyJTIwc3RvcmUlMjBwcm9kdWN0JTIwZm9vdHdlYXIlMjBpc29sYXRlZHxlbnwwfHx8fDE3OTA4MDE1MzJ8MA&ixlib=rb-4.1.0&q=85",
+    "sneakers_wall": "https://images.unsplash.com/photo-1633464129147-777bdcc97c1d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA3MDB8MHwxfHNlYXJjaHwzfHxzbmVha2VyJTIwc3RvcmUlMjBwcm9kdWN0JTIwZm9vdHdlYXIlMjBpc29sYXRlZHxlbnwwfHx8fDE3OTA4MDE1MzJ8MA&ixlib=rb-4.1.0&q=85"
+  },
+  "testing_and_data_attributes": {
+    "rule": "Every interactive component, button, filter, cart item, input, select, and status text MUST include explicit data-testid attributes in kebab-case.",
+    "examples": [
+      "data-testid=\"global-header\"",
+      "data-testid=\"search-input\"",
+      "data-testid=\"cart-drawer-trigger\"",
+      "data-testid=\"product-card-1\"",
+      "data-testid=\"product-title\"",
+      "data-testid=\"product-price\"",
+      "data-testid=\"add-to-cart-button\"",
+      "data-testid=\"size-select-42\"",
+      "data-testid=\"commune-select\"",
+      "data-testid=\"order-whatsapp-button\"",
+      "data-testid=\"order-wave-button\"",
+      "data-testid=\"admin-add-product-button\""
+    ]
+  },
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Strictly follow the user's color scheme: page background VERY LIGHT BROWN (#F6F2EC), cards WHITE (#FFFFFF), accent VIVID RED (#DC2626) for prices and highlights, primary buttons BLACK (#111111).",
+    "Strictly apply font choices: Bold sans-serif for main titles and section headings; small uppercase letter-spaced MONOSPACE for labels, tags, prices, sizes, and metadata.",
+    "All UI copy must be in French (e.g., 'Ajouter au panier', 'Livraison à Abidjan', 'Commander sur WhatsApp', 'Commander par Wave', 'Toutes nos paires sont 100% authentiques').",
+    "Currency must be FCFA everywhere (e.g. 55 000 FCFA).",
+    "Mobile-first responsive design with 2-column product grid on mobile screens.",
+    "Ensure all buttons and inputs have proper data-testid attributes.",
+    "Lazy load product images for maximum performance."
+  ]
+}
