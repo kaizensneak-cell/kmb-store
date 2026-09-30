@@ -1,0 +1,37 @@
+{
+  "summary": "Tested 4 new features (Wave manager alert, restock request flow, admin order status filter, sold-out visual gating) plus regression on existing endpoints for KMB STORE. Backend pytest: 9/9 pass. Frontend Playwright: all UI flows verified.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_restock_and_admin.py",
+    "/app/backend/tests/test_auth_orders_favorites.py",
+    "/app/test_reports/pytest/pytest_restock.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ProductPage.jsx restock-size <select> has <option value=''> whose label uses inline JSX expression, causing React hydration warning: 'In HTML, <span> cannot be a child of <option>'. Non-blocking but should be fixed by moving the conditional text out of the option child (e.g. compute label first and place as plain string): `<option value=''>{`Pointure${size ? ` (${size})` : ''}`}</option>`. Currently still functional.",
+    "Admin.jsx Restock tab counter (`Restock ({restock.length})`) is not decremented when using notifyRestock — only deleteRestock updates state. Minor UX inconsistency (counter is refreshed on next tab visit via refresh()).",
+    "server.py POST /api/restock does not validate that product_id exists; it silently stores product_name='' and brand='' if the product is missing. Consider returning 404 for unknown product_id to avoid orphan rows.",
+    "server.py DELETE /api/admin/restock/{req_id} does not return 404 when the id doesn't exist (always returns success:true). Acceptable idempotency but inconsistent with DELETE /api/products which returns 404."
+  ],
+  "updated_files": ["/app/backend/tests/test_restock_and_admin.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin password: admin123 via X-Admin-Password header.",
+  "seed_data_creation": "Created temporary restock_requests during tests; deleted from DB after run (mongosh deleteMany on restock_requests). Temporarily set one product stock to 0 for sold-out UI test and restored to original value.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression pytest files: /app/backend/tests/test_restock_and_admin.py (new — 9 tests) and /app/backend/tests/test_auth_orders_favorites.py. DB name: test_database. Product-page restock <option> triggers a benign React hydration warning. All 4 new features verified: (1) Wave order triggers TWO window.open — wa.me/{store} + pay.wave URL — confirmed. (2) POST /api/restock stores product_name/brand from products collection; admin GET requires X-Admin-Password, list newest-first; delete removes. (3) Admin order status chips filter list; verified counts change. (4) stock=0 product shows sold-out-badge + sold-out-msg on product page; add-to-cart, WhatsApp and Wave buttons all disabled; catalogue overlay + greyscale rendered.",
+  "verified_scenarios": [
+    "POST /api/restock (no auth) 200 with success:true; stores product_name & brand from products",
+    "GET /api/admin/restock 401 without header, 200 with; newest-first sort verified",
+    "DELETE /api/admin/restock/{id} 401 without header, 200 with; row disappears",
+    "GET /api/admin/orders 401 without header, 200 with; PUT status 404 on bad id",
+    "GET /api/products, /api/config, /api/reviews regression 200",
+    "ProductPage: restock-toggle reveals restock-form; submit posts and toast shows 'Nous vous préviendrons...'",
+    "ProductPage stock=0: sold-out-badge + sold-out-msg render; add-to-cart, order-whatsapp-button, order-wave-button all disabled",
+    "Catalogue: sold-out overlay + greyscale image; low-stock (1-5) shows 'Plus que X dispo'",
+    "Wave button after size+commune triggers window.open('https://wa.me/2250789185022?text=...') AND window.open(WAVE_LINK) — 2 opens captured",
+    "Admin Restock tab: rows render with product_name, size, brand, whatsapp; Notifier opens wa.me/{whatsapp}?text=...; Fait deletes and row disappears",
+    "Admin Orders tab: 4 filter chips (Tous/En attente/Livré/Annulé) present and toggle active state; Livré filter only shows Livré orders (verified by badge text)"
+  ]
+}

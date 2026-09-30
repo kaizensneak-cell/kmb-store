@@ -185,7 +185,7 @@ export default function ProductPage() {
                 <div className="mt-3 bg-white rounded-xl border border-neutral-200 p-4 space-y-2" data-testid="restock-form">
                   <div className="grid grid-cols-2 gap-2">
                     <select value={restockSize} onChange={(e) => setRestockSize(e.target.value)} className="h-10 px-3 rounded-lg border border-neutral-200 text-sm" data-testid="restock-size">
-                      <option value="">Pointure{size ? ` (${size})` : ""}</option>
+                      <option value="">{`Pointure${size ? ` (${size})` : ""}`}</option>
                       {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <input value={restockPhone} onChange={(e) => setRestockPhone(e.target.value)} placeholder="Votre WhatsApp" className="h-10 px-3 rounded-lg border border-neutral-200 text-sm" data-testid="restock-phone" />
