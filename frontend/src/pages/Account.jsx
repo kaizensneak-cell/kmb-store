@@ -12,7 +12,7 @@ import { ProductCard } from "@/components/ProductCard";
 export default function Account() {
   const navigate = useNavigate();
   const { user, loading, login, logout } = useAuth();
-  const [tab, setTab] = useState("profil");
+  const [tab, setTab] = useState("commandes");
   const [orders, setOrders] = useState([]);
   const [favs, setFavs] = useState([]);
   const [search, setSearch] = useState("");
@@ -68,9 +68,7 @@ export default function Account() {
           <button onClick={() => setTab("favoris")} className={`h-9 px-4 rounded-full mono-label text-[11px] flex items-center gap-1.5 ${tab === "favoris" ? "bg-[#DC2626] text-white" : "bg-white border border-neutral-200"}`} data-testid="tab-favorites"><Heart className="w-3.5 h-3.5" /> Favoris ({favs.length})</button>
         </div>
 
-        {tab === "profil" && null}
-
-        {tab !== "favoris" && (
+        {tab === "commandes" && (
           <div className="space-y-3" data-testid="orders-list">
             {orders.length === 0 && <p className="text-sm text-neutral-500 py-8 text-center">Aucune commande enregistrée pour l'instant.</p>}
             {orders.map((o) => (
