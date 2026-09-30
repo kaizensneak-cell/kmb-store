@@ -1,6 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { Heart } from "lucide-react";
 import { fmtFCFA, imgUrl } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 const badgeStyle = (badge) => {
   if (!badge) return "";
@@ -9,7 +11,9 @@ const badgeStyle = (badge) => {
 
 export const ProductCard = ({ product, index = 0 }) => {
   const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useAuth();
   const photo = imgUrl(product.photos?.[0]);
+  const fav = isFavorite(product.id);
 
   return (
     <button
@@ -26,6 +30,16 @@ export const ProductCard = ({ product, index = 0 }) => {
             {product.badge}
           </span>
         )}
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => { e.stopPropagation(); toggleFavorite(product.id); }}
+          className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 border border-neutral-200 flex items-center justify-center hover:scale-110 transition-transform"
+          data-testid={`favorite-button-${product.id}`}
+          aria-label="Ajouter aux favoris"
+        >
+          <Heart className={`w-4 h-4 ${fav ? "fill-[#DC2626] text-[#DC2626]" : "text-neutral-500"}`} />
+        </span>
         {photo && (
           <img
             src={photo}

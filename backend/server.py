@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Header, Depends, UploadFile, File, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Header, Depends, UploadFile, File, Query, Request
 from fastapi.responses import Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -10,7 +10,7 @@ import requests
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -108,6 +108,130 @@ def require_admin(x_admin_password: Optional[str] = Header(None)):
     if x_admin_password != ADMIN_PASSWORD:
         raise HTTPException(status_code=401, detail="Mot de passe incorrect")
     return True
+
+# ---------------- User / Auth models ----------------
+class OrderItem(BaseModel):
+    product_id: str
+    name: str
+    brand: str
+    size: int
+    qty: int
+    price: int
+
+class OrderInput(BaseModel):
+    items: List[OrderItem]
+    commune: Optional[str] = None
+    landmark: str = ""
+    subtotal: int
+    delivery_fee: int
+    total: int
+    method: str = "whatsapp"
+
+async def get_current_user(request: Request):
+    token = request.cookies.get("session_token")
+    if not token:
+        auth = request.headers.get("Authorization")
+        if auth and auth.startswith("Bearer "):
+            token = auth[7:]
+    if not token:
+        raise HTTPException(status_code=401, detail="Non authentifié")
+    sess = await db.user_sessions.find_one({"session_token": token}, {"_id": 0})
+    if not sess:
+        raise HTTPException(status_code=401, detail="Session invalide")
+    expires_at = sess["expires_at"]
+    if isinstance(expires_at, str):
+        expires_at = datetime.fromisoformat(expires_at)
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=401, detail="Session expirée")
+    user = await db.users.find_one({"user_id": sess["user_id"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="Utilisateur introuvable")
+    return user
+
+# ---------------- Auth routes ----------------
+@api_router.post("/auth/session")
+async def create_session(request: Request, response: Response):
+    session_id = request.headers.get("X-Session-ID")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="X-Session-ID manquant")
+    r = requests.get(
+        "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
+        headers={"X-Session-ID": session_id}, timeout=30,
+    )
+    if r.status_code != 200:
+        raise HTTPException(status_code=401, detail="Session Google invalide")
+    data = r.json()
+    existing = await db.users.find_one({"email": data["email"]}, {"_id": 0})
+    if existing:
+        user_id = existing["user_id"]
+        await db.users.update_one({"user_id": user_id}, {"$set": {"name": data.get("name"), "picture": data.get("picture")}})
+    else:
+        user_id = f"user_{uuid.uuid4().hex[:12]}"
+        await db.users.insert_one({
+            "user_id": user_id, "email": data["email"], "name": data.get("name"),
+            "picture": data.get("picture"), "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+    session_token = data["session_token"]
+    expires = datetime.now(timezone.utc) + timedelta(days=7)
+    await db.user_sessions.insert_one({
+        "user_id": user_id, "session_token": session_token,
+        "expires_at": expires.isoformat(), "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    response.set_cookie("session_token", session_token, httponly=True, secure=True, samesite="none", path="/", max_age=7 * 24 * 3600)
+    user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    return user
+
+@api_router.get("/auth/me")
+async def auth_me(user: dict = Depends(get_current_user)):
+    return user
+
+@api_router.post("/auth/logout")
+async def logout(request: Request, response: Response):
+    token = request.cookies.get("session_token")
+    if not token:
+        auth = request.headers.get("Authorization")
+        if auth and auth.startswith("Bearer "):
+            token = auth[7:]
+    if token:
+        await db.user_sessions.delete_one({"session_token": token})
+    response.delete_cookie("session_token", path="/", samesite="none", secure=True)
+    return {"success": True}
+
+# ---------------- Orders ----------------
+@api_router.post("/orders")
+async def create_order(data: OrderInput, user: dict = Depends(get_current_user)):
+    order = {
+        "id": str(uuid.uuid4()), "user_id": user["user_id"],
+        **data.model_dump(), "status": "En attente",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.orders.insert_one(order)
+    order.pop("_id", None)
+    return order
+
+@api_router.get("/orders")
+async def list_orders(user: dict = Depends(get_current_user)):
+    docs = await db.orders.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return docs
+
+# ---------------- Favorites ----------------
+@api_router.post("/favorites/{product_id}")
+async def toggle_favorite(product_id: str, user: dict = Depends(get_current_user)):
+    existing = await db.favorites.find_one({"user_id": user["user_id"], "product_id": product_id})
+    if existing:
+        await db.favorites.delete_one({"user_id": user["user_id"], "product_id": product_id})
+        return {"favorited": False}
+    await db.favorites.insert_one({"user_id": user["user_id"], "product_id": product_id, "created_at": datetime.now(timezone.utc).isoformat()})
+    return {"favorited": True}
+
+@api_router.get("/favorites")
+async def list_favorites(user: dict = Depends(get_current_user)):
+    favs = await db.favorites.find({"user_id": user["user_id"]}, {"_id": 0}).to_list(500)
+    ids = [f["product_id"] for f in favs]
+    products = await db.products.find({"id": {"$in": ids}}, {"_id": 0}).to_list(500)
+    return {"product_ids": ids, "products": products}
 
 # ---------------- Routes ----------------
 @api_router.get("/")

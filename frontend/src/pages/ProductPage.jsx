@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, ShoppingBag, MessageCircle, Wallet, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MapPin, ShoppingBag, MessageCircle, Wallet, CheckCircle2, Heart } from "lucide-react";
 import { api, imgUrl, fmtFCFA, waLink } from "@/lib/api";
 import { CONFIG } from "@/config";
 import { InfoStrip } from "@/components/InfoStrip";
@@ -8,6 +8,7 @@ import { Header } from "@/components/Header";
 import { CartDrawer } from "@/components/CartDrawer";
 import { Footer } from "@/components/Footer";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 const SIZES = [37, 38, 39, 40, 41, 42, 43, 44, 45];
@@ -16,6 +17,7 @@ export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem, setOpen, setCommune: setCartCommune, setLandmark: setCartLandmark } = useCart();
+  const { recordOrder, isFavorite, toggleFavorite } = useAuth();
 
   const [product, setProduct] = useState(null);
   const [communes, setCommunes] = useState([]);
@@ -59,15 +61,22 @@ export default function ProductPage() {
     return msg;
   };
 
+  const orderPayload = (method) => ({
+    items: [{ product_id: product.id, name: product.name, brand: product.brand, size, qty: 1, price: product.price }],
+    commune: commune.name, landmark, subtotal: product.price, delivery_fee: deliveryFee, total, method,
+  });
+
   const handleWhatsApp = () => {
     if (!complete) return;
     syncCart();
+    recordOrder(orderPayload("whatsapp"));
     window.open(waLink(orderMessage()), "_blank");
   };
 
   const handleWave = () => {
     if (!complete) return;
     syncCart();
+    recordOrder(orderPayload("wave"));
     window.open(CONFIG.WAVE_LINK, "_blank");
   };
 
@@ -111,7 +120,17 @@ export default function ProductPage() {
           {/* DETAILS */}
           <div>
             <p className="mono-label text-[11px] text-[#DC2626] mb-1">{product.brand}</p>
-            <h1 className="font-display font-black text-3xl sm:text-4xl leading-tight text-neutral-900" data-testid="product-title">{product.name}</h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="font-display font-black text-3xl sm:text-4xl leading-tight text-neutral-900" data-testid="product-title">{product.name}</h1>
+              <button
+                onClick={() => toggleFavorite(product.id)}
+                className="shrink-0 w-11 h-11 rounded-full border border-neutral-200 bg-white flex items-center justify-center hover:border-[#DC2626] transition-colors"
+                data-testid="product-favorite-button"
+                aria-label="Ajouter aux favoris"
+              >
+                <Heart className={`w-5 h-5 ${isFavorite(product.id) ? "fill-[#DC2626] text-[#DC2626]" : "text-neutral-500"}`} />
+              </button>
+            </div>
             <div className="mt-3 flex items-baseline gap-3">
               <span className="font-mono font-bold text-[#DC2626] text-3xl sm:text-4xl" data-testid="product-detail-price">{fmtFCFA(product.price)}</span>
               {product.old_price && <span className="font-mono text-neutral-400 line-through text-lg">{fmtFCFA(product.old_price)}</span>}

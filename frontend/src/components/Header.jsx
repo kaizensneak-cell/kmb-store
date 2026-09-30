@@ -1,12 +1,14 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, Search, Menu } from "lucide-react";
+import { ShoppingBag, Search, Menu, User as UserIcon } from "lucide-react";
 import { CONFIG } from "@/config";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 export const Header = ({ search, setSearch }) => {
   const navigate = useNavigate();
   const { count, setOpen } = useCart();
+  const { user, login } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 bg-[#F6F2EC]/90 backdrop-blur-md border-b border-neutral-200" data-testid="global-header">
@@ -21,6 +23,29 @@ export const Header = ({ search, setSearch }) => {
           </button>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {user ? (
+              <button
+                onClick={() => navigate("/compte")}
+                className="p-0.5 rounded-full border border-neutral-300 hover:border-[#DC2626] transition-colors"
+                data-testid="account-button"
+                aria-label="Mon compte"
+              >
+                {user.picture ? (
+                  <img src={user.picture} alt="" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover" />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-[#111111] text-white flex items-center justify-center text-sm font-bold">{user.name?.[0]}</div>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={login}
+                className="p-2.5 rounded-full border border-neutral-300 text-neutral-800 hover:bg-white transition-colors"
+                data-testid="login-button"
+                aria-label="Se connecter"
+              >
+                <UserIcon className="w-5 h-5" />
+              </button>
+            )}
             <button
               onClick={() => setOpen(true)}
               className="relative p-2.5 rounded-full bg-[#111111] text-white hover:bg-neutral-800 transition-colors"
