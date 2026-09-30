@@ -14,6 +14,7 @@ export const ProductCard = ({ product, index = 0 }) => {
   const { isFavorite, toggleFavorite } = useAuth();
   const photo = imgUrl(product.photos?.[0]);
   const fav = isFavorite(product.id);
+  const soldOut = product.stock === 0;
 
   return (
     <button
@@ -45,8 +46,13 @@ export const ProductCard = ({ product, index = 0 }) => {
             src={photo}
             alt={product.name}
             loading="lazy"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className={`w-full h-full object-cover transition-transform duration-500 ${soldOut ? "grayscale opacity-60" : "group-hover:scale-105"}`}
           />
+        )}
+        {soldOut && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/30" data-testid={`sold-out-${product.id}`}>
+            <span className="px-3 py-1 rounded-full bg-[#111111] text-white mono-label text-[10px] font-bold">Épuisé</span>
+          </div>
         )}
       </div>
       <div className="p-3 sm:p-4">

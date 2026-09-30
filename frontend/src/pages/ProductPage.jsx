@@ -26,6 +26,9 @@ export default function ProductPage() {
   const [landmark, setLandmark] = useState("");
   const [activePhoto, setActivePhoto] = useState(0);
   const [search, setSearch] = useState("");
+  const [restockOpen, setRestockOpen] = useState(false);
+  const [restockPhone, setRestockPhone] = useState("");
+  const [restockSize, setRestockSize] = useState("");
 
   useEffect(() => {
     api.get(`/products/${id}`).then((r) => setProduct(r.data)).catch(() => navigate("/"));
@@ -33,7 +36,8 @@ export default function ProductPage() {
     window.scrollTo(0, 0);
   }, [id, navigate]);
 
-  const complete = size && commune;
+  const soldOut = product?.stock === 0;
+  const complete = size && commune && !soldOut;
   const deliveryFee = commune ? commune.fee : 0;
   const total = product ? product.price + deliveryFee : 0;
 
@@ -42,6 +46,7 @@ export default function ProductPage() {
   };
 
   const handleAddToCart = () => {
+    if (soldOut) { toast.error("Ce modèle est épuisé."); return; }
     if (!complete) { toast.error("Sélectionnez une pointure et une commune."); return; }
     syncCart();
     addItem(product, size, 1);
@@ -77,7 +82,21 @@ export default function ProductPage() {
     if (!complete) return;
     syncCart();
     recordOrder(orderPayload("wave"));
+    // Alerte automatique au gérant (WhatsApp pré-rempli) + ouverture du paiement Wave
+    const alertMsg = `🔔 NOUVELLE COMMANDE (Wave)\n${product.name} — Pointure ${size}\nCommune : ${commune.name}${landmark ? " (" + landmark + ")" : ""}\nTotal : ${fmtFCFA(total)}`;
+    window.open(waLink(alertMsg), "_blank");
     window.open(CONFIG.WAVE_LINK, "_blank");
+  };
+
+  const submitRestock = async () => {
+    const sz = restockSize || size;
+    if (!sz) { toast.error("Choisissez une pointure."); return; }
+    if (!restockPhone.trim()) { toast.error("Entrez votre numéro WhatsApp."); return; }
+    try {
+      await api.post("/restock", { product_id: product.id, size: Number(sz), whatsapp: restockPhone.trim() });
+      toast.success("Nous vous préviendrons dès le retour en stock !");
+      setRestockOpen(false); setRestockPhone(""); setRestockSize("");
+    } catch { toast.error("Erreur, réessayez."); }
   };
 
   const handlePaid = () => {
@@ -135,6 +154,7 @@ export default function ProductPage() {
               <span className="font-mono font-bold text-[#DC2626] text-3xl sm:text-4xl" data-testid="product-detail-price">{fmtFCFA(product.price)}</span>
               {product.old_price && <span className="font-mono text-neutral-400 line-through text-lg">{fmtFCFA(product.old_price)}</span>}
             </div>
+            {soldOut && <span className="inline-block mt-2 px-3 py-1 rounded-full bg-[#111111] text-white mono-label text-[10px] font-bold" data-testid="sold-out-badge">Épuisé</span>}
             <p className="mt-4 text-sm text-neutral-600 leading-relaxed">{product.description}</p>
 
             {/* SIZES */}
@@ -158,6 +178,21 @@ export default function ProductPage() {
                   );
                 })}
               </div>
+              <button onClick={() => setRestockOpen((v) => !v)} className="mt-3 mono-label text-[10px] text-neutral-600 underline underline-offset-2" data-testid="restock-toggle">
+                Pointure indisponible ? Prévenez-moi quand elle revient
+              </button>
+              {restockOpen && (
+                <div className="mt-3 bg-white rounded-xl border border-neutral-200 p-4 space-y-2" data-testid="restock-form">
+                  <div className="grid grid-cols-2 gap-2">
+                    <select value={restockSize} onChange={(e) => setRestockSize(e.target.value)} className="h-10 px-3 rounded-lg border border-neutral-200 text-sm" data-testid="restock-size">
+                      <option value="">Pointure{size ? ` (${size})` : ""}</option>
+                      {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <input value={restockPhone} onChange={(e) => setRestockPhone(e.target.value)} placeholder="Votre WhatsApp" className="h-10 px-3 rounded-lg border border-neutral-200 text-sm" data-testid="restock-phone" />
+                  </div>
+                  <button onClick={submitRestock} className="w-full h-10 rounded-full bg-[#DC2626] text-white font-semibold text-sm" data-testid="restock-submit">M'alerter au retour en stock</button>
+                </div>
+              )}
             </div>
 
             {/* COMMUNE */}
@@ -211,10 +246,12 @@ export default function ProductPage() {
 
             {/* ACTIONS */}
             <div className="mt-5 space-y-3">
-              <button onClick={handleAddToCart} className="w-full h-13 py-3.5 rounded-full bg-[#111111] text-white font-semibold flex items-center justify-center gap-2 hover:bg-neutral-800 transition-colors" data-testid="add-to-cart-button">
+              <button onClick={handleAddToCart} disabled={soldOut} className={`w-full py-3.5 rounded-full font-semibold flex items-center justify-center gap-2 transition-colors ${soldOut ? "bg-neutral-200 text-neutral-400 cursor-not-allowed" : "bg-[#111111] text-white hover:bg-neutral-800"}`} data-testid="add-to-cart-button">
                 <ShoppingBag className="w-5 h-5" /> Ajouter au panier
               </button>
-              {!complete && (
+              {soldOut ? (
+                <p className="text-[#DC2626] text-xs text-center font-bold" data-testid="sold-out-msg">Ce modèle est épuisé pour le moment.</p>
+              ) : !complete && (
                 <p className="text-[#DC2626] text-xs text-center" data-testid="incomplete-error">
                   Sélectionnez une pointure et une commune pour commander.
                 </p>

@@ -127,6 +127,11 @@ class OrderInput(BaseModel):
     total: int
     method: str = "whatsapp"
 
+class RestockInput(BaseModel):
+    product_id: str
+    size: int
+    whatsapp: str
+
 async def get_current_user(request: Request):
     token = request.cookies.get("session_token")
     if not token:
@@ -249,6 +254,29 @@ async def list_favorites(user: dict = Depends(get_current_user)):
     ids = [f["product_id"] for f in favs]
     products = await db.products.find({"id": {"$in": ids}}, {"_id": 0}).to_list(500)
     return {"product_ids": ids, "products": products}
+
+# ---------------- Restock requests ----------------
+@api_router.post("/restock")
+async def create_restock(data: RestockInput):
+    product = await db.products.find_one({"id": data.product_id}, {"_id": 0})
+    doc = {
+        "id": str(uuid.uuid4()), "product_id": data.product_id,
+        "product_name": product["name"] if product else "", "brand": product["brand"] if product else "",
+        "size": data.size, "whatsapp": data.whatsapp,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.restock_requests.insert_one(doc)
+    return {"success": True}
+
+@api_router.get("/admin/restock")
+async def admin_list_restock(_: bool = Depends(require_admin)):
+    docs = await db.restock_requests.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return docs
+
+@api_router.delete("/admin/restock/{req_id}")
+async def admin_delete_restock(req_id: str, _: bool = Depends(require_admin)):
+    await db.restock_requests.delete_one({"id": req_id})
+    return {"success": True}
 
 # ---------------- Routes ----------------
 @api_router.get("/")

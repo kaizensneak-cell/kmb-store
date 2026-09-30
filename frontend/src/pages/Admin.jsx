@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Plus, Trash2, Pencil, Upload, X, ArrowLeft, Save, MessageCircle, Package } from "lucide-react";
+import { Lock, Plus, Trash2, Pencil, Upload, X, ArrowLeft, Save, MessageCircle, Package, Bell } from "lucide-react";
 import { api, API, imgUrl, fmtFCFA } from "@/lib/api";
 import { BRANDS } from "@/config";
 import { toast } from "sonner";
@@ -19,6 +19,8 @@ export default function Admin() {
   const [products, setProducts] = useState([]);
   const [communes, setCommunes] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [orderFilter, setOrderFilter] = useState("Tous");
+  const [restock, setRestock] = useState([]);
   const [editing, setEditing] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -29,6 +31,7 @@ export default function Admin() {
     api.get("/products").then((r) => setProducts(r.data));
     api.get("/config").then((r) => setCommunes(r.data.communes || []));
     api.get("/admin/orders", { headers }).then((r) => setOrders(r.data)).catch(() => {});
+    api.get("/admin/restock", { headers }).then((r) => setRestock(r.data)).catch(() => {});
   };
 
   useEffect(() => { if (authed) refresh(); }, [authed]);
@@ -107,6 +110,18 @@ export default function Admin() {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
+  const deleteRestock = async (id) => {
+    await api.delete(`/admin/restock/${id}`, { headers });
+    setRestock((r) => r.filter((x) => x.id !== id));
+    toast.success("Demande retirée");
+  };
+
+  const notifyRestock = (r) => {
+    const num = (r.whatsapp || "").replace(/[^0-9]/g, "");
+    const msg = `Bonjour ! Bonne nouvelle 🎉 Votre pointure ${r.size} pour "${r.product_name}" est de nouveau disponible chez KMB STORE. Commandez vite avant rupture !`;
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   if (!authed) {
     return (
       <div className="min-h-screen bg-[#F6F2EC] flex items-center justify-center p-4">
@@ -144,6 +159,7 @@ export default function Admin() {
         <div className="flex gap-2 mb-6">
           <button onClick={() => setTab("products")} className={`h-9 px-4 rounded-full mono-label text-[11px] ${tab === "products" ? "bg-[#DC2626] text-white" : "bg-white border border-neutral-200"}`} data-testid="tab-products">Produits</button>
           <button onClick={() => setTab("orders")} className={`h-9 px-4 rounded-full mono-label text-[11px] flex items-center gap-1.5 ${tab === "orders" ? "bg-[#DC2626] text-white" : "bg-white border border-neutral-200"}`} data-testid="tab-orders"><Package className="w-3.5 h-3.5" /> Commandes ({orders.length})</button>
+          <button onClick={() => setTab("restock")} className={`h-9 px-4 rounded-full mono-label text-[11px] flex items-center gap-1.5 ${tab === "restock" ? "bg-[#DC2626] text-white" : "bg-white border border-neutral-200"}`} data-testid="tab-restock"><Bell className="w-3.5 h-3.5" /> Restock ({restock.length})</button>
           <button onClick={() => setTab("delivery")} className={`h-9 px-4 rounded-full mono-label text-[11px] ${tab === "delivery" ? "bg-[#DC2626] text-white" : "bg-white border border-neutral-200"}`} data-testid="tab-delivery">Livraison</button>
         </div>
 
@@ -170,6 +186,25 @@ export default function Admin() {
           </>
         )}
 
+        {tab === "restock" && (
+          <div className="space-y-3 max-w-2xl" data-testid="admin-restock-list">
+            {restock.length === 0 && <p className="text-sm text-neutral-500 py-8">Aucune demande d'alerte pour l'instant.</p>}
+            {restock.map((r) => (
+              <div key={r.id} className="bg-white rounded-xl border border-neutral-200 p-4 flex items-center justify-between gap-3" data-testid={`admin-restock-${r.id}`}>
+                <div className="min-w-0">
+                  <p className="font-display font-bold text-sm text-neutral-900">{r.product_name} <span className="text-[#DC2626]">· P{r.size}</span></p>
+                  <p className="mono-label text-[9px] text-neutral-500 mt-0.5">{r.brand} · {new Date(r.created_at).toLocaleDateString("fr-FR")}</p>
+                  <p className="text-sm text-neutral-700 mt-1">WhatsApp : {r.whatsapp}</p>
+                </div>
+                <div className="flex flex-col gap-1.5 shrink-0">
+                  <button onClick={() => notifyRestock(r)} className="h-9 px-4 rounded-full bg-[#111111] text-white text-xs mono-label flex items-center gap-1.5" data-testid={`restock-notify-${r.id}`}><MessageCircle className="w-3.5 h-3.5" /> Notifier</button>
+                  <button onClick={() => deleteRestock(r.id)} className="h-9 px-4 rounded-full border border-neutral-200 text-[#DC2626] text-xs mono-label flex items-center gap-1.5" data-testid={`restock-delete-${r.id}`}><Trash2 className="w-3.5 h-3.5" /> Fait</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {tab === "delivery" && (
           <div className="bg-white rounded-xl border border-neutral-200 p-5 max-w-lg">
             <h3 className="font-display font-bold mb-4">Frais de livraison par commune (FCFA)</h3>
@@ -186,8 +221,13 @@ export default function Admin() {
         )}
         {tab === "orders" && (
           <div className="space-y-3 max-w-2xl" data-testid="admin-orders-list">
-            {orders.length === 0 && <p className="text-sm text-neutral-500 py-8">Aucune commande pour l'instant.</p>}
-            {orders.map((o) => (
+            <div className="flex gap-2 flex-wrap mb-1">
+              {["Tous", "En attente", "Livré", "Annulé"].map((f) => (
+                <button key={f} onClick={() => setOrderFilter(f)} className={`h-8 px-3 rounded-full mono-label text-[10px] ${orderFilter === f ? "bg-[#111111] text-white" : "bg-white border border-neutral-200 text-neutral-600"}`} data-testid={`order-filter-${f}`}>{f}</button>
+              ))}
+            </div>
+            {orders.filter((o) => orderFilter === "Tous" || o.status === orderFilter).length === 0 && <p className="text-sm text-neutral-500 py-8">Aucune commande.</p>}
+            {orders.filter((o) => orderFilter === "Tous" || o.status === orderFilter).map((o) => (
               <div key={o.id} className="bg-white rounded-xl border border-neutral-200 p-4" data-testid={`admin-order-${o.id}`}>
                 <div className="flex justify-between items-start gap-3">
                   <div className="min-w-0">
