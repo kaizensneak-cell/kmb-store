@@ -9,7 +9,7 @@ export const CONFIG = {
   WHATSAPP_NUMBER: "2250789185022",
   WHATSAPP_DISPLAY: "+225 07 89 18 50 22",
   // Lien de paiement Wave (remplacez par votre vrai lien)
-  WAVE_LINK: "https://pay.wave.com/m/kmb-store",
+  WAVE_LINK: "https://pay.wave.com/m/M_N_SciYWDPIua/c/ci/",
   CURRENCY: "FCFA",
   CITY: "Abidjan, Côte d'Ivoire",
   PRIMARY_COLOR: "#DC2626",

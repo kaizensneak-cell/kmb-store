@@ -204,6 +204,7 @@ async def logout(request: Request, response: Response):
 async def create_order(data: OrderInput, user: dict = Depends(get_current_user)):
     order = {
         "id": str(uuid.uuid4()), "user_id": user["user_id"],
+        "customer_name": user.get("name"), "customer_email": user.get("email"),
         **data.model_dump(), "status": "En attente",
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -215,6 +216,22 @@ async def create_order(data: OrderInput, user: dict = Depends(get_current_user))
 async def list_orders(user: dict = Depends(get_current_user)):
     docs = await db.orders.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
     return docs
+
+# ---------------- Admin orders ----------------
+class StatusInput(BaseModel):
+    status: str
+
+@api_router.get("/admin/orders")
+async def admin_list_orders(_: bool = Depends(require_admin)):
+    docs = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return docs
+
+@api_router.put("/admin/orders/{order_id}/status")
+async def admin_update_order_status(order_id: str, data: StatusInput, _: bool = Depends(require_admin)):
+    res = await db.orders.update_one({"id": order_id}, {"$set": {"status": data.status}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+    return {"success": True, "status": data.status}
 
 # ---------------- Favorites ----------------
 @api_router.post("/favorites/{product_id}")

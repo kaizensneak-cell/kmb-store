@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Plus, Trash2, Pencil, Upload, X, ArrowLeft, Save } from "lucide-react";
+import { Lock, Plus, Trash2, Pencil, Upload, X, ArrowLeft, Save, MessageCircle, Package } from "lucide-react";
 import { api, API, imgUrl, fmtFCFA } from "@/lib/api";
 import { BRANDS } from "@/config";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ export default function Admin() {
   const [tab, setTab] = useState("products");
   const [products, setProducts] = useState([]);
   const [communes, setCommunes] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [editing, setEditing] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -27,6 +28,7 @@ export default function Admin() {
   const refresh = () => {
     api.get("/products").then((r) => setProducts(r.data));
     api.get("/config").then((r) => setCommunes(r.data.communes || []));
+    api.get("/admin/orders", { headers }).then((r) => setOrders(r.data)).catch(() => {});
   };
 
   useEffect(() => { if (authed) refresh(); }, [authed]);
@@ -87,6 +89,24 @@ export default function Admin() {
     }
   };
 
+  const updateStatus = async (id, status) => {
+    try {
+      await api.put(`/admin/orders/${id}/status`, { status }, { headers });
+      setOrders((os) => os.map((o) => (o.id === id ? { ...o, status } : o)));
+      toast.success("Statut mis à jour");
+    } catch {
+      toast.error("Erreur");
+    }
+  };
+
+  const relanceWhatsApp = (o) => {
+    let msg = `Bonjour ${o.customer_name || ""}, au sujet de votre commande KMB STORE :\n\n`;
+    o.items.forEach((it) => { msg += `• ${it.name} (Pointure ${it.size}) × ${it.qty}\n`; });
+    if (o.commune) msg += `Livraison : ${o.commune}${o.landmark ? " — " + o.landmark : ""}\n`;
+    msg += `Total : ${fmtFCFA(o.total)}\nStatut : ${o.status}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   if (!authed) {
     return (
       <div className="min-h-screen bg-[#F6F2EC] flex items-center justify-center p-4">
@@ -123,6 +143,7 @@ export default function Admin() {
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex gap-2 mb-6">
           <button onClick={() => setTab("products")} className={`h-9 px-4 rounded-full mono-label text-[11px] ${tab === "products" ? "bg-[#DC2626] text-white" : "bg-white border border-neutral-200"}`} data-testid="tab-products">Produits</button>
+          <button onClick={() => setTab("orders")} className={`h-9 px-4 rounded-full mono-label text-[11px] flex items-center gap-1.5 ${tab === "orders" ? "bg-[#DC2626] text-white" : "bg-white border border-neutral-200"}`} data-testid="tab-orders"><Package className="w-3.5 h-3.5" /> Commandes ({orders.length})</button>
           <button onClick={() => setTab("delivery")} className={`h-9 px-4 rounded-full mono-label text-[11px] ${tab === "delivery" ? "bg-[#DC2626] text-white" : "bg-white border border-neutral-200"}`} data-testid="tab-delivery">Livraison</button>
         </div>
 
@@ -161,6 +182,36 @@ export default function Admin() {
               ))}
             </div>
             <button onClick={saveCommunes} className="mt-5 h-10 px-5 rounded-full bg-[#111111] text-white font-semibold text-sm flex items-center gap-2" data-testid="save-communes"><Save className="w-4 h-4" /> Enregistrer</button>
+          </div>
+        )}
+        {tab === "orders" && (
+          <div className="space-y-3 max-w-2xl" data-testid="admin-orders-list">
+            {orders.length === 0 && <p className="text-sm text-neutral-500 py-8">Aucune commande pour l'instant.</p>}
+            {orders.map((o) => (
+              <div key={o.id} className="bg-white rounded-xl border border-neutral-200 p-4" data-testid={`admin-order-${o.id}`}>
+                <div className="flex justify-between items-start gap-3">
+                  <div className="min-w-0">
+                    <p className="font-display font-bold text-sm text-neutral-900">{o.customer_name || "Client"}</p>
+                    <p className="text-xs text-neutral-500 truncate">{o.customer_email}</p>
+                    <p className="mono-label text-[9px] text-neutral-400 mt-0.5">{new Date(o.created_at).toLocaleString("fr-FR")} · {o.method === "wave" ? "Wave" : "WhatsApp"}</p>
+                  </div>
+                  <span className={`shrink-0 mono-label text-[9px] px-2 py-1 rounded-full ${o.status === "Livré" ? "bg-green-100 text-green-700" : o.status === "Annulé" ? "bg-neutral-200 text-neutral-500" : "bg-[#FEF2F2] text-[#DC2626]"}`} data-testid={`order-badge-${o.id}`}>{o.status}</span>
+                </div>
+                <div className="mt-2 border-t border-neutral-100 pt-2">
+                  {o.items.map((it, i) => (<p key={i} className="text-sm text-neutral-800">{it.name} <span className="text-neutral-400">· P{it.size} × {it.qty}</span></p>))}
+                  {o.commune && <p className="text-xs text-neutral-500 mt-1">{o.commune}{o.landmark ? ` — ${o.landmark}` : ""} · Livraison {fmtFCFA(o.delivery_fee)}</p>}
+                  <p className="font-mono font-bold text-[#DC2626] mt-1">{fmtFCFA(o.total)}</p>
+                </div>
+                <div className="mt-3 flex items-center gap-2 flex-wrap">
+                  <select value={o.status} onChange={(e) => updateStatus(o.id, e.target.value)} className="h-9 px-3 rounded-lg border border-neutral-200 text-xs mono-label" data-testid={`order-status-${o.id}`}>
+                    <option>En attente</option>
+                    <option>Livré</option>
+                    <option>Annulé</option>
+                  </select>
+                  <button onClick={() => relanceWhatsApp(o)} className="h-9 px-4 rounded-full bg-[#111111] text-white text-xs mono-label flex items-center gap-1.5" data-testid={`order-relance-${o.id}`}><MessageCircle className="w-3.5 h-3.5" /> Relance WhatsApp</button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

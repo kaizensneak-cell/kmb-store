@@ -62,6 +62,11 @@ export const ProductCard = ({ product, index = 0 }) => {
             <span className="font-mono text-xs text-neutral-400 line-through">{fmtFCFA(product.old_price)}</span>
           )}
         </div>
+        {product.stock > 0 && product.stock <= 5 && (
+          <p className="mono-label text-[9px] text-[#DC2626] mt-1.5 font-bold" data-testid={`low-stock-${product.id}`}>
+            Plus que {product.stock} dispo
+          </p>
+        )}
       </div>
     </button>
   );
